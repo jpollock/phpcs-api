@@ -1,12 +1,14 @@
 # PHPCS API
 
-A simple API for PHP_CodeSniffer that allows you to analyze PHP code against various coding standards.
+A robust API for PHP_CodeSniffer that allows you to analyze PHP code against various coding standards with advanced features for performance, security, and monitoring.
 
 ## Features
 
-- Analyze PHP code using PHPCS
-- Support for all installed PHPCS standards
-- Simple REST API
+- Analyze PHP code using PHPCS with support for all installed standards
+- High-performance caching system for faster response times
+- Comprehensive logging and monitoring capabilities
+- Robust security with API key authentication and rate limiting
+- Detailed documentation with Mermaid diagrams
 - Docker support for easy deployment
 
 ## API Endpoints
@@ -222,6 +224,19 @@ public class PhpcsApiExample {
     }
 }
 ```
+
+## Documentation
+
+Comprehensive documentation is available in the `docs` directory:
+
+- [Architecture](docs/architecture.md) - Overview of the system architecture with diagrams
+- [API Reference](docs/api-reference.md) - Detailed API endpoint documentation
+- [Authentication](docs/authentication.md) - API key authentication system
+- [Caching](docs/caching.md) - Caching system for improved performance
+- [Configuration](docs/configuration.md) - Configuration options and best practices
+- [Logging](docs/logging.md) - Enhanced logging system with multiple log levels
+- [Security](docs/security.md) - Security features including rate limiting and input validation
+- [Testing](docs/testing.md) - Testing approach and best practices
 
 ## License
 
