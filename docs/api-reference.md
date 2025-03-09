@@ -2,6 +2,13 @@
 
 This document provides a reference for all endpoints available in the PHPCS API.
 
+## API Versioning
+
+This API uses URL path versioning. All endpoints are prefixed with `/v1` to indicate the API version.
+The current version is v1. Future versions will use different prefixes (e.g., `/v2`).
+
+The API also returns the version in the `X-API-Version` response header.
+
 ## Base URL
 
 ```
@@ -25,7 +32,7 @@ Most endpoints require authentication. See [Authentication](authentication.md) f
 Analyzes PHP code using PHP_CodeSniffer.
 
 ```
-POST /analyze
+POST /v1/analyze
 ```
 
 #### Request
@@ -145,7 +152,7 @@ POST /analyze
 Lists available PHPCS standards.
 
 ```
-GET /standards
+GET /v1/standards
 ```
 
 #### Response
@@ -171,7 +178,7 @@ GET /standards
 Checks if the API is running properly.
 
 ```
-GET /health
+GET /v1/health
 ```
 
 #### Response
@@ -190,7 +197,7 @@ GET /health
 Generates a new API key.
 
 ```
-POST /keys/generate
+POST /v1/keys/generate
 ```
 
 #### Request
@@ -258,5 +265,6 @@ The API includes several security headers to protect against common web vulnerab
 - `X-Content-Type-Options: nosniff`
 - `X-Frame-Options: DENY`
 - `X-XSS-Protection: 1; mode=block`
+- `X-API-Version: v1` - Indicates the current API version
 - `Strict-Transport-Security: max-age=31536000; includeSubDomains`
 - `Content-Security-Policy: default-src 'self'; script-src 'self'; object-src 'none'; frame-ancestors 'none'`

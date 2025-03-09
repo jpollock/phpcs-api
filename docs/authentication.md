@@ -137,6 +137,6 @@ If you receive a `403 Forbidden` response, check:
 - That the API key has the required scope for the endpoint
 - That the API key hasn't been revoked
 
-## Disabling Authentication
+## Local Testing
 
-For development or internal use, authentication can be disabled by setting `auth.enabled` to `false` in the configuration file.
+For information on setting up authentication for local testing, see the [Local Testing Guide](local-testing.md).

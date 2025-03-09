@@ -94,6 +94,10 @@ class Response
         // Set status code
         http_response_code($this->statusCode);
 
+        // Add API version header
+        $apiVersion = Config::get('api_version', 'v1');
+        $this->headers['X-API-Version'] = $apiVersion;
+
         // Set headers
         foreach ($this->headers as $name => $value) {
             header("$name: $value");

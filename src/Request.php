@@ -59,7 +59,15 @@ class Request
     public static function fromGlobals(): self
     {
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-        $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+        $uri = $_SERVER['REQUEST_URI'] ?? '/';
+        $path = parse_url($uri, PHP_URL_PATH);
+        
+        // Handle malformed URLs (like double slashes) that cause parse_url to return null
+        if ($path === null) {
+            // Clean up the URI by replacing multiple consecutive slashes with a single slash
+            $uri = preg_replace('|/{2,}|', '/', $uri);
+            $path = parse_url($uri, PHP_URL_PATH) ?? '/';
+        }
         
         // Get headers
         $headers = [];

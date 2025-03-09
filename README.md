@@ -2,6 +2,13 @@
 
 A robust API for PHP_CodeSniffer that allows you to analyze PHP code against various coding standards with advanced features for performance, security, and monitoring.
 
+## API Versioning
+
+This API uses URL path versioning. All endpoints are prefixed with `/v1` to indicate the API version.
+The current version is v1. Future versions will use different prefixes (e.g., `/v2`).
+
+The API also returns the version in the `X-API-Version` response header.
+
 ## Features
 
 - Analyze PHP code using PHPCS with support for all installed standards
@@ -13,7 +20,7 @@ A robust API for PHP_CodeSniffer that allows you to analyze PHP code against var
 
 ## API Endpoints
 
-### POST /analyze
+### POST /v1/analyze
 
 Analyzes PHP code using PHPCS.
 
@@ -62,7 +69,7 @@ Analyzes PHP code using PHPCS.
 }
 ```
 
-### GET /standards
+### GET /v1/standards
 
 Lists available PHPCS standards.
 
@@ -84,7 +91,7 @@ Lists available PHPCS standards.
 }
 ```
 
-### GET /health
+### GET /v1/health
 
 Checks if the service is running properly.
 
@@ -152,15 +159,17 @@ docker-compose up -d
 
 ```bash
 # Analyze code
-curl -X POST http://localhost:8080/analyze \
+curl -X POST http://localhost:8080/v1/analyze \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
   -d '{"code":"<?php echo \"Hello World\"; ?>\n","standard":"PSR12"}'
 
 # Get standards
-curl http://localhost:8080/standards
+curl http://localhost:8080/v1/standards \
+  -H "Authorization: Bearer YOUR_API_KEY"
 
-# Check health
-curl http://localhost:8080/health
+# Check health (no authentication required)
+curl http://localhost:8080/v1/health
 ```
 
 ### PHP
@@ -170,9 +179,12 @@ curl http://localhost:8080/health
 $code = '<?php echo "Hello World"; ?>';
 $data = json_encode(['code' => $code, 'standard' => 'PSR12']);
 
-$ch = curl_init('http://localhost:8080/analyze');
+$ch = curl_init('http://localhost:8080/v1/analyze');
 curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    'Content-Type: application/json',
+    'Authorization: Bearer YOUR_API_KEY'
+]);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
 $response = curl_exec($ch);
@@ -194,10 +206,11 @@ import java.util.Scanner;
 public class PhpcsApiExample {
     public static void main(String[] args) {
         try {
-            URL url = new URL("http://localhost:8080/analyze");
+            URL url = new URL("http://localhost:8080/v1/analyze");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Authorization", "Bearer YOUR_API_KEY");
             conn.setDoOutput(true);
 
             String code = "<?php echo \\\"Hello World\\\"; ?>\\n";
@@ -231,12 +244,46 @@ Comprehensive documentation is available in the `docs` directory:
 
 - [Architecture](docs/architecture.md) - Overview of the system architecture with diagrams
 - [API Reference](docs/api-reference.md) - Detailed API endpoint documentation
+- [OpenAPI Specification](docs/openapi.html) - Interactive API documentation using OpenAPI 3.0
 - [Authentication](docs/authentication.md) - API key authentication system
 - [Caching](docs/caching.md) - Caching system for improved performance
 - [Configuration](docs/configuration.md) - Configuration options and best practices
 - [Logging](docs/logging.md) - Enhanced logging system with multiple log levels
 - [Security](docs/security.md) - Security features including rate limiting and input validation
 - [Testing](docs/testing.md) - Testing approach and best practices
+
+The OpenAPI specification is available in the root directory as `openapi.yml`. You can view it interactively using the [OpenAPI documentation viewer](docs/openapi.html).
+
+## Testing with Postman
+
+A Postman collection is available in the `postman` directory for testing the API:
+
+- [Postman Collection](postman/phpcs-api-collection.json) - Collection of API requests with tests
+- [Environment File](postman/environment.json) - Environment variables for the collection
+- [Postman README](postman/README.md) - Instructions for using the collection
+
+The collection includes requests for all API endpoints and tests to verify the API's functionality. You can run the tests using Postman or Newman (CLI version of Postman).
+
+### Authentication for Local Testing
+
+The API requires authentication for most endpoints. See the [Local Testing Guide](docs/local-testing.md) for instructions on how to:
+
+1. Generate API keys for testing
+2. Use API keys with cURL and Postman
+3. Troubleshoot common authentication issues
+
+### Running Tests with Newman
+
+```bash
+# Install Newman
+npm install -g newman
+
+# Run the tests
+cd phpcs-api
+newman run postman/phpcs-api-collection.json -e postman/environment.json
+```
+
+See the [Postman README](postman/README.md) for more details.
 
 ## License
 

@@ -69,7 +69,7 @@ $pipeline = function (Request $request) use ($router, $authMiddleware, $security
 };
 
 // Define routes
-$router->addRoute('POST', '/analyze', function (Request $request) use ($phpcsService, $authService, $logger) {
+$router->addRoute('POST', '/v1/analyze', function (Request $request) use ($phpcsService, $authService, $logger) {
     // Check if authentication is enabled
     if (Config::get('auth.enabled', true)) {
         // Extract API key from request
@@ -140,7 +140,7 @@ $router->addRoute('POST', '/analyze', function (Request $request) use ($phpcsSer
     ]);
 });
 
-$router->addRoute('GET', '/standards', function (Request $request) use ($phpcsService, $authService, $logger) {
+$router->addRoute('GET', '/v1/standards', function (Request $request) use ($phpcsService, $authService, $logger) {
     // Check if authentication is enabled
     if (Config::get('auth.enabled', true)) {
         // Extract API key from request
@@ -183,7 +183,7 @@ $router->addRoute('GET', '/standards', function (Request $request) use ($phpcsSe
     ]);
 });
 
-$router->addRoute('GET', '/health', function (Request $request) use ($phpcsService, $cacheService) {
+$router->addRoute('GET', '/v1/health', function (Request $request) use ($phpcsService, $cacheService) {
     return Response::json([
         'status' => 'ok',
         'version' => Config::get('app_version'),
@@ -194,7 +194,7 @@ $router->addRoute('GET', '/health', function (Request $request) use ($phpcsServi
 });
 
 // Cache management endpoint (admin only)
-$router->addRoute('POST', '/cache/clear', function (Request $request) use ($authService, $cacheService, $logger) {
+$router->addRoute('POST', '/v1/cache/clear', function (Request $request) use ($authService, $cacheService, $logger) {
     // Check if authentication is enabled
     if (Config::get('auth.enabled', true)) {
         // Extract API key from request
@@ -250,7 +250,7 @@ $router->addRoute('POST', '/cache/clear', function (Request $request) use ($auth
 });
 
 // Cache stats endpoint (admin only)
-$router->addRoute('GET', '/cache/stats', function (Request $request) use ($authService, $cacheService, $logger) {
+$router->addRoute('GET', '/v1/cache/stats', function (Request $request) use ($authService, $cacheService, $logger) {
     // Check if authentication is enabled
     if (Config::get('auth.enabled', true)) {
         // Extract API key from request
@@ -296,7 +296,7 @@ $router->addRoute('GET', '/cache/stats', function (Request $request) use ($authS
 });
 
 // API key management endpoints (admin only)
-$router->addRoute('POST', '/keys/generate', function (Request $request) use ($authService, $logger) {
+$router->addRoute('POST', '/v1/keys/generate', function (Request $request) use ($authService, $logger) {
     // This endpoint should be protected by additional authentication
     // For now, we'll only allow it in development mode
     if (getenv('APP_ENV') === 'production') {
@@ -360,7 +360,7 @@ $logger->logRequest(
     $_SERVER['HTTP_USER_AGENT'] ?? null,
     microtime(true) - $startTime,
     $headers,
-    $request->body
+    $request->body ?? [] // Ensure we always pass an array, even for GET requests
 );
 
 // Add request ID to response headers for debugging

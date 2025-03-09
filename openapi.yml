@@ -1,0 +1,737 @@
+openapi: 3.0.0
+info:
+  title: PHPCS API
+  description: |
+    A robust API for PHP_CodeSniffer that allows you to analyze PHP code against various coding standards with advanced features for performance, security, and monitoring.
+    
+    This API provides a RESTful interface to PHPCS functionality, making it easy to integrate code quality checks into your development workflow.
+    
+    ## API Versioning
+    
+    This API uses URL path versioning. All endpoints are prefixed with `/v1` to indicate the API version.
+    The current version is v1. Future versions will use different prefixes (e.g., `/v2`).
+    
+    The API also returns the version in the `X-API-Version` response header.
+  version: 1.0.0
+  contact:
+    name: PHPCS API Team
+    email: info@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://your-api-domain.com
+    description: Production server
+  - url: http://localhost:8080
+    description: Local development server
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: API key authentication using Bearer token format
+      x-example: "Authorization: Bearer YOUR_API_KEY"
+
+  schemas:
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error code or short description
+          example: Authentication required
+        message:
+          type: string
+          description: Detailed error message
+          example: API key is required for this endpoint
+        retry_after:
+          type: integer
+          description: Seconds to wait before retrying (for rate limit errors)
+          example: 45
+
+    AnalyzeRequest:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: string
+          description: PHP code to analyze
+          example: "<?php echo \"Hello World\"; ?>\n"
+        standard:
+          type: string
+          description: PHPCS standard to use
+          default: PSR12
+          example: PSR12
+        options:
+          type: object
+          description: Additional PHPCS options
+          properties:
+            report:
+              type: string
+              description: Report format
+              default: json
+              example: json
+            severity:
+              type: integer
+              description: Minimum severity level (0-10)
+              minimum: 0
+              maximum: 10
+              example: 5
+            error-severity:
+              type: integer
+              description: Minimum error severity level (0-10)
+              minimum: 0
+              maximum: 10
+              example: 5
+            warning-severity:
+              type: integer
+              description: Minimum warning severity level (0-10)
+              minimum: 0
+              maximum: 10
+              example: 5
+            tab-width:
+              type: integer
+              description: Number of spaces per tab
+              minimum: 1
+              example: 4
+            encoding:
+              type: string
+              description: File encoding
+              example: utf-8
+            extensions:
+              type: string
+              description: File extensions to check
+              example: php
+            sniffs:
+              type: array
+              description: Specific sniffs to include
+              items:
+                type: string
+                example: Generic.PHP.DisallowShortOpenTag
+            exclude:
+              type: array
+              description: Specific sniffs to exclude
+              items:
+                type: string
+                example: PSR12.Files.FileHeader
+
+    AnalyzeResponse:
+      type: object
+      required:
+        - success
+        - results
+      properties:
+        success:
+          type: boolean
+          description: Whether the request was successful
+          example: true
+        results:
+          type: object
+          properties:
+            totals:
+              type: object
+              properties:
+                errors:
+                  type: integer
+                  description: Total number of errors
+                  example: 1
+                warnings:
+                  type: integer
+                  description: Total number of warnings
+                  example: 0
+                fixable:
+                  type: integer
+                  description: Total number of fixable issues
+                  example: 1
+            files:
+              type: object
+              additionalProperties:
+                type: object
+                properties:
+                  errors:
+                    type: integer
+                    description: Number of errors in this file
+                    example: 1
+                  warnings:
+                    type: integer
+                    description: Number of warnings in this file
+                    example: 0
+                  messages:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        message:
+                          type: string
+                          description: Error or warning message
+                          example: Double quoted string contains a single quote
+                        source:
+                          type: string
+                          description: Source of the error or warning
+                          example: Squiz.Strings.DoubleQuoteUsage.ContainsSingleQuote
+                        severity:
+                          type: integer
+                          description: Severity level (0-10)
+                          example: 5
+                        type:
+                          type: string
+                          description: Type of issue (ERROR or WARNING)
+                          enum: [ERROR, WARNING]
+                          example: ERROR
+                        line:
+                          type: integer
+                          description: Line number
+                          example: 1
+                        column:
+                          type: integer
+                          description: Column number
+                          example: 12
+                        fixable:
+                          type: boolean
+                          description: Whether the issue is fixable
+                          example: true
+
+    StandardsResponse:
+      type: object
+      required:
+        - success
+        - standards
+      properties:
+        success:
+          type: boolean
+          description: Whether the request was successful
+          example: true
+        standards:
+          type: array
+          description: List of available PHPCS standards
+          items:
+            type: string
+            example: PSR12
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - version
+        - phpcs_version
+        - timestamp
+      properties:
+        status:
+          type: string
+          description: API status
+          example: ok
+        version:
+          type: string
+          description: API version
+          example: 1.0.0
+        phpcs_version:
+          type: string
+          description: PHPCS version
+          example: 3.7.1
+        timestamp:
+          type: integer
+          description: Current timestamp
+          example: 1709942400
+        cache:
+          type: object
+          description: Cache statistics
+          properties:
+            count:
+              type: integer
+              description: Number of items in cache
+              example: 42
+            size:
+              type: integer
+              description: Size of cache in bytes
+              example: 1048576
+            hit_rate:
+              type: number
+              description: Cache hit rate (0-1)
+              example: 0.85
+
+    CacheStatsResponse:
+      type: object
+      required:
+        - success
+        - stats
+      properties:
+        success:
+          type: boolean
+          description: Whether the request was successful
+          example: true
+        stats:
+          type: object
+          properties:
+            count:
+              type: integer
+              description: Number of items in cache
+              example: 42
+            size:
+              type: integer
+              description: Size of cache in bytes
+              example: 1048576
+            hit_rate:
+              type: number
+              description: Cache hit rate (0-1)
+              example: 0.85
+            hits:
+              type: integer
+              description: Number of cache hits
+              example: 85
+            misses:
+              type: integer
+              description: Number of cache misses
+              example: 15
+            created:
+              type: string
+              format: date-time
+              description: When the cache was created
+              example: 2023-01-01T00:00:00Z
+
+    CacheClearResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          description: Whether the cache was cleared successfully
+          example: true
+        message:
+          type: string
+          description: Status message
+          example: Cache cleared successfully
+
+    GenerateKeyRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name or description for the key
+          example: My API Key
+        scopes:
+          type: array
+          description: Scopes to grant to the key
+          items:
+            type: string
+            enum: [analyze, standards, admin]
+            example: analyze
+        expires:
+          type: integer
+          description: Expiration timestamp
+          example: 1741478400
+
+    GenerateKeyResponse:
+      type: object
+      required:
+        - success
+        - key
+        - data
+      properties:
+        success:
+          type: boolean
+          description: Whether the key was generated successfully
+          example: true
+        key:
+          type: string
+          description: The generated API key
+          example: abc123def456ghi789
+        data:
+          type: object
+          properties:
+            name:
+              type: string
+              description: Name or description for the key
+              example: My API Key
+            created:
+              type: integer
+              description: Creation timestamp
+              example: 1709942400
+            scopes:
+              type: array
+              description: Scopes granted to the key
+              items:
+                type: string
+                example: analyze
+            expires:
+              type: integer
+              description: Expiration timestamp
+              example: 1741478400
+            active:
+              type: boolean
+              description: Whether the key is active
+              example: true
+
+paths:
+  /v1/analyze:
+    post:
+      summary: Analyze PHP code
+      description: |
+        Analyzes PHP code using PHP_CodeSniffer against the specified coding standard.
+        
+        This endpoint requires authentication with an API key that has the 'analyze' scope.
+      operationId: analyzeCode
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnalyzeRequest'
+      responses:
+        '200':
+          description: Successful analysis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyzeResponse'
+              example:
+                success: true
+                results:
+                  totals:
+                    errors: 1
+                    warnings: 0
+                    fixable: 1
+                  files:
+                    code.php:
+                      errors: 1
+                      warnings: 0
+                      messages:
+                        - message: Double quoted string contains a single quote
+                          source: Squiz.Strings.DoubleQuoteUsage.ContainsSingleQuote
+                          severity: 5
+                          type: ERROR
+                          line: 1
+                          column: 12
+                          fixable: true
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                missing-code:
+                  value:
+                    error: Missing code parameter
+                size-limit:
+                  value:
+                    error: Code exceeds maximum size limit
+                    message: Code exceeds maximum size limit (1MB)
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Authentication required
+                message: API key is required for this endpoint
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid API key
+                message: The provided API key is invalid or does not have the required permissions
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Rate limit exceeded
+                message: You have exceeded the 60 requests per minute rate limit.
+                retry_after: 45
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+                message: An unexpected error occurred
+
+  /v1/standards:
+    get:
+      summary: List available standards
+      description: |
+        Lists all available PHPCS standards that can be used with the analyze endpoint.
+        
+        This endpoint requires authentication with an API key that has the 'standards' scope.
+      operationId: listStandards
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardsResponse'
+              example:
+                success: true
+                standards:
+                  - PSR1
+                  - PSR2
+                  - PSR12
+                  - PEAR
+                  - Squiz
+                  - Zend
+                  - PHPCompatibility
+                  - PHPCompatibilityWP
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Authentication required
+                message: API key is required for this endpoint
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid API key
+                message: The provided API key is invalid or does not have the required permissions
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Rate limit exceeded
+                message: You have exceeded the 60 requests per minute rate limit.
+                retry_after: 45
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+                message: An unexpected error occurred
+
+  /v1/health:
+    get:
+      summary: Health check
+      description: |
+        Checks if the API is running properly and returns basic information about the service.
+        
+        This endpoint does not require authentication.
+      operationId: healthCheck
+      security: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: ok
+                version: 1.0.0
+                phpcs_version: 3.7.1
+                timestamp: 1709942400
+                cache:
+                  count: 42
+                  size: 1048576
+                  hit_rate: 0.85
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+                message: An unexpected error occurred
+
+  /v1/cache/clear:
+    post:
+      summary: Clear cache
+      description: |
+        Clears the PHPCS analysis cache.
+        
+        This endpoint requires authentication with an API key that has the 'admin' scope.
+      operationId: clearCache
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheClearResponse'
+              example:
+                success: true
+                message: Cache cleared successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Authentication required
+                message: API key is required for this endpoint
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid API key
+                message: The provided API key is invalid or does not have the required permissions
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+                message: An unexpected error occurred
+
+  /v1/cache/stats:
+    get:
+      summary: Cache statistics
+      description: |
+        Returns statistics about the PHPCS analysis cache.
+        
+        This endpoint requires authentication with an API key that has the 'admin' scope.
+      operationId: cacheStats
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheStatsResponse'
+              example:
+                success: true
+                stats:
+                  count: 42
+                  size: 1048576
+                  hit_rate: 0.85
+                  hits: 85
+                  misses: 15
+                  created: 2023-01-01T00:00:00Z
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Authentication required
+                message: API key is required for this endpoint
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid API key
+                message: The provided API key is invalid or does not have the required permissions
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+                message: An unexpected error occurred
+
+  /v1/keys/generate:
+    post:
+      summary: Generate API key
+      description: |
+        Generates a new API key.
+        
+        This endpoint is only available in development mode and is not accessible in production.
+      operationId: generateKey
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateKeyRequest'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateKeyResponse'
+              example:
+                success: true
+                key: abc123def456ghi789
+                data:
+                  name: My API Key
+                  created: 1709942400
+                  scopes:
+                    - analyze
+                    - standards
+                  expires: 1741478400
+                  active: true
+        '404':
+          description: Not found (in production mode)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Not Found
+                message: This endpoint is not available in production mode
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Internal server error
+                message: An unexpected error occurred
+
+tags:
+  - name: Analysis
+    description: Endpoints for analyzing PHP code
+  - name: Standards
+    description: Endpoints for listing available standards
+  - name: Health
+    description: Endpoints for checking API health
+  - name: Cache
+    description: Endpoints for managing the cache
+  - name: Keys
+    description: Endpoints for managing API keys
+
+externalDocs:
+  description: PHPCS API Documentation
+  url: https://your-api-domain.com/docs

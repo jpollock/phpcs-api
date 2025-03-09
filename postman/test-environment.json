@@ -1,0 +1,39 @@
+{
+  "id": "phpcs-api-test-env",
+  "name": "PHPCS API Test",
+  "values": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "api_key",
+      "value": "6f4998d4e7ffcf0698ced3d629c142fb013d790bcb221d78",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "admin_key",
+      "value": "6f4998d4e7ffcf0698ced3d629c142fb013d790bcb221d78",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "analyze_key",
+      "value": "042dcc33a3cfb091e6022e558755a3e316d74534e4cbb53b",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "standards_key",
+      "value": "aeb04454834dffe2b3b9fe161e6481da93bf057ad4f9f34f",
+      "type": "secret",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment",
+  "_postman_exported_at": "2025-03-09T18:26:07.000Z",
+  "_postman_exported_using": "PHPCS API Setup Script"
+}

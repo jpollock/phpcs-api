@@ -1,0 +1,534 @@
+{
+  "info": {
+    "name": "PHPCS API",
+    "description": "A robust API for PHP_CodeSniffer that allows you to analyze PHP code against various coding standards.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "12345678"
+  },
+  "item": [
+    {
+      "name": "Analyze Code",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{api_key}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"code\": \"<?php echo \\\"Hello World\\\"; ?>\\n\",\n  \"standard\": \"PSR12\",\n  \"options\": {\n    \"report\": \"json\",\n    \"showSources\": true\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/v1/analyze",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "v1",
+            "analyze"
+          ]
+        },
+        "description": "Analyzes PHP code using PHP_CodeSniffer against the specified coding standard."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Test status code",
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "// Test response headers",
+              "pm.test(\"Response has X-API-Version header\", function () {",
+              "    pm.response.to.have.header(\"X-API-Version\");",
+              "    pm.expect(pm.response.headers.get(\"X-API-Version\")).to.eql(\"v1\");",
+              "});",
+              "",
+              "// Test response format",
+              "pm.test(\"Response is JSON\", function () {",
+              "    pm.response.to.be.json;",
+              "});",
+              "",
+              "// Test response structure",
+              "pm.test(\"Response has correct structure\", function () {",
+              "    const responseJson = pm.response.json();",
+              "    pm.expect(responseJson).to.be.an('object');",
+              "    pm.expect(responseJson).to.have.property('success');",
+              "    pm.expect(responseJson.success).to.be.true;",
+              "    pm.expect(responseJson).to.have.property('results');",
+              "    pm.expect(responseJson.results).to.have.property('totals');",
+              "    pm.expect(responseJson.results).to.have.property('files');",
+              "});",
+              "",
+              "// Test response content",
+              "pm.test(\"Response contains analysis results\", function () {",
+              "    const responseJson = pm.response.json();",
+              "    pm.expect(responseJson.results.totals).to.have.property('errors');",
+              "    pm.expect(responseJson.results.totals).to.have.property('warnings');",
+              "    pm.expect(responseJson.results.totals).to.have.property('fixable');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "List Standards",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{api_key}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/v1/standards",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "v1",
+            "standards"
+          ]
+        },
+        "description": "Lists all available PHPCS standards that can be used with the analyze endpoint."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Test status code",
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "// Test response headers",
+              "pm.test(\"Response has X-API-Version header\", function () {",
+              "    pm.response.to.have.header(\"X-API-Version\");",
+              "    pm.expect(pm.response.headers.get(\"X-API-Version\")).to.eql(\"v1\");",
+              "});",
+              "",
+              "// Test response format",
+              "pm.test(\"Response is JSON\", function () {",
+              "    pm.response.to.be.json;",
+              "});",
+              "",
+              "// Test response structure",
+              "pm.test(\"Response has correct structure\", function () {",
+              "    const responseJson = pm.response.json();",
+              "    pm.expect(responseJson).to.be.an('object');",
+              "    pm.expect(responseJson).to.have.property('success');",
+              "    pm.expect(responseJson.success).to.be.true;",
+              "    pm.expect(responseJson).to.have.property('standards');",
+              "    pm.expect(responseJson.standards).to.be.an('array');",
+              "});",
+              "",
+              "// Test response content",
+              "pm.test(\"Response contains common standards\", function () {",
+              "    const responseJson = pm.response.json();",
+              "    const standards = responseJson.standards;",
+              "    const commonStandards = ['PSR1', 'PSR2', 'PSR12'];",
+              "    ",
+              "    // Check if at least one common standard is present",
+              "    const hasCommonStandard = commonStandards.some(std => standards.includes(std));",
+              "    pm.expect(hasCommonStandard).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/v1/health",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "v1",
+            "health"
+          ]
+        },
+        "description": "Checks if the API is running properly and returns basic information about the service."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Test status code",
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "// Test response headers",
+              "pm.test(\"Response has X-API-Version header\", function () {",
+              "    pm.response.to.have.header(\"X-API-Version\");",
+              "    pm.expect(pm.response.headers.get(\"X-API-Version\")).to.eql(\"v1\");",
+              "});",
+              "",
+              "// Test response format",
+              "pm.test(\"Response is JSON\", function () {",
+              "    pm.response.to.be.json;",
+              "});",
+              "",
+              "// Test response structure",
+              "pm.test(\"Response has correct structure\", function () {",
+              "    const responseJson = pm.response.json();",
+              "    pm.expect(responseJson).to.be.an('object');",
+              "    pm.expect(responseJson).to.have.property('status');",
+              "    pm.expect(responseJson.status).to.equal('ok');",
+              "    pm.expect(responseJson).to.have.property('version');",
+              "    pm.expect(responseJson).to.have.property('phpcs_version');",
+              "    pm.expect(responseJson).to.have.property('timestamp');",
+              "});",
+              "",
+              "// Test timestamp is recent",
+              "pm.test(\"Timestamp is recent\", function () {",
+              "    const responseJson = pm.response.json();",
+              "    const timestamp = responseJson.timestamp;",
+              "    const now = Math.floor(Date.now() / 1000);",
+              "    const fiveMinutesAgo = now - 300;",
+              "    ",
+              "    pm.expect(timestamp).to.be.at.least(fiveMinutesAgo);",
+              "    pm.expect(timestamp).to.be.at.most(now + 5); // Allow for small clock differences",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cache Clear",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{api_key}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/v1/cache/clear",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "v1",
+            "cache",
+            "clear"
+          ]
+        },
+        "description": "Clears the PHPCS analysis cache."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Test status code",
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "// Test response headers",
+              "pm.test(\"Response has X-API-Version header\", function () {",
+              "    pm.response.to.have.header(\"X-API-Version\");",
+              "    pm.expect(pm.response.headers.get(\"X-API-Version\")).to.eql(\"v1\");",
+              "});",
+              "",
+              "// Test response format",
+              "pm.test(\"Response is JSON\", function () {",
+              "    pm.response.to.be.json;",
+              "});",
+              "",
+              "// Test response structure",
+              "pm.test(\"Response has correct structure\", function () {",
+              "    const responseJson = pm.response.json();",
+              "    pm.expect(responseJson).to.be.an('object');",
+              "    pm.expect(responseJson).to.have.property('success');",
+              "    pm.expect(responseJson).to.have.property('message');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cache Stats",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{api_key}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/v1/cache/stats",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "v1",
+            "cache",
+            "stats"
+          ]
+        },
+        "description": "Returns statistics about the PHPCS analysis cache."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Test status code",
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "// Test response headers",
+              "pm.test(\"Response has X-API-Version header\", function () {",
+              "    pm.response.to.have.header(\"X-API-Version\");",
+              "    pm.expect(pm.response.headers.get(\"X-API-Version\")).to.eql(\"v1\");",
+              "});",
+              "",
+              "// Test response format",
+              "pm.test(\"Response is JSON\", function () {",
+              "    pm.response.to.be.json;",
+              "});",
+              "",
+              "// Test response structure",
+              "pm.test(\"Response has correct structure\", function () {",
+              "    const responseJson = pm.response.json();",
+              "    pm.expect(responseJson).to.be.an('object');",
+              "    pm.expect(responseJson).to.have.property('success');",
+              "    pm.expect(responseJson.success).to.be.true;",
+              "    pm.expect(responseJson).to.have.property('stats');",
+              "    pm.expect(responseJson.stats).to.be.an('object');",
+              "});",
+              "",
+              "// Test stats properties",
+              "pm.test(\"Stats have correct properties\", function () {",
+              "    const responseJson = pm.response.json();",
+              "    const stats = responseJson.stats;",
+              "    pm.expect(stats).to.have.property('count');",
+              "    pm.expect(stats).to.have.property('size');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Generate API Key",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{api_key}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Test API Key\",\n  \"scopes\": [\"analyze\", \"standards\"]\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/v1/keys/generate",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "v1",
+            "keys",
+            "generate"
+          ]
+        },
+        "description": "Generates a new API key. This endpoint is only available in development mode."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Test status code",
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "// Test response headers",
+              "pm.test(\"Response has X-API-Version header\", function () {",
+              "    pm.response.to.have.header(\"X-API-Version\");",
+              "    pm.expect(pm.response.headers.get(\"X-API-Version\")).to.eql(\"v1\");",
+              "});",
+              "",
+              "// Test response format",
+              "pm.test(\"Response is JSON\", function () {",
+              "    pm.response.to.be.json;",
+              "});",
+              "",
+              "// Test response structure",
+              "pm.test(\"Response has correct structure\", function () {",
+              "    const responseJson = pm.response.json();",
+              "    pm.expect(responseJson).to.be.an('object');",
+              "    pm.expect(responseJson).to.have.property('success');",
+              "    pm.expect(responseJson.success).to.be.true;",
+              "    pm.expect(responseJson).to.have.property('key');",
+              "    pm.expect(responseJson).to.have.property('data');",
+              "});",
+              "",
+              "// Test key data",
+              "pm.test(\"Key data has correct properties\", function () {",
+              "    const responseJson = pm.response.json();",
+              "    const data = responseJson.data;",
+              "    pm.expect(data).to.have.property('name');",
+              "    pm.expect(data).to.have.property('scopes');",
+              "    pm.expect(data.scopes).to.be.an('array');",
+              "    pm.expect(data).to.have.property('created');",
+              "});",
+              "",
+              "// Save the API key for future requests",
+              "pm.test(\"Save API key to environment\", function () {",
+              "    const responseJson = pm.response.json();",
+              "    pm.environment.set(\"api_key\", responseJson.key);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Error - Missing Code",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{api_key}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"standard\": \"PSR12\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/v1/analyze",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "v1",
+            "analyze"
+          ]
+        },
+        "description": "Tests error handling when the code parameter is missing."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Test status code",
+              "pm.test(\"Status code is 400\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "// Test response headers",
+              "pm.test(\"Response has X-API-Version header\", function () {",
+              "    pm.response.to.have.header(\"X-API-Version\");",
+              "    pm.expect(pm.response.headers.get(\"X-API-Version\")).to.eql(\"v1\");",
+              "});",
+              "",
+              "// Test response format",
+              "pm.test(\"Response is JSON\", function () {",
+              "    pm.response.to.be.json;",
+              "});",
+              "",
+              "// Test error response structure",
+              "pm.test(\"Error response has correct structure\", function () {",
+              "    const responseJson = pm.response.json();",
+              "    pm.expect(responseJson).to.be.an('object');",
+              "    pm.expect(responseJson).to.have.property('error');",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "api_key",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

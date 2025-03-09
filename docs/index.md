@@ -9,6 +9,7 @@ Welcome to the PHPCS API documentation. This documentation provides comprehensiv
 - [Architecture](architecture.md) - Overview of the system architecture with diagrams
 - [API Reference](api-reference.md) - Detailed API endpoint documentation
 - [Authentication](authentication.md) - API key authentication system
+- [Local Testing](local-testing.md) - Setting up authentication for local testing
 - [Caching](caching.md) - Caching system for improved performance
 - [Configuration](configuration.md) - Configuration options and best practices
 - [Logging](logging.md) - Enhanced logging system with multiple log levels
@@ -36,7 +37,8 @@ To get started with the PHPCS API, follow these steps:
 1. **Installation**: See the [README.md](../README.md) for installation instructions.
 2. **Configuration**: Configure the API using the [configuration guide](configuration.md).
 3. **Authentication**: Set up API keys using the [authentication guide](authentication.md).
-4. **Usage**: Use the API endpoints as described in the [API reference](api-reference.md).
+4. **Local Testing**: If you're testing locally, see the [local testing guide](local-testing.md).
+5. **Usage**: Use the API endpoints as described in the [API reference](api-reference.md).
 
 ## Architecture
 
@@ -57,8 +59,11 @@ The PHPCS API provides the following main endpoints:
 - `POST /analyze`: Analyzes PHP code using PHPCS.
 - `GET /standards`: Lists available PHPCS standards.
 - `GET /health`: Checks if the service is running properly.
+- `POST /cache/clear`: Clears the cache (admin only).
+- `GET /cache/stats`: Shows cache statistics (admin only).
+- `POST /keys/generate`: Generates API keys (admin/development only).
 
-For detailed information about each endpoint, including request and response formats, see the [API reference](api-reference.md).
+For detailed information about each endpoint, including request and response formats, see the [API reference](api-reference.md) or the [OpenAPI specification](openapi.html).
 
 ## Security
 

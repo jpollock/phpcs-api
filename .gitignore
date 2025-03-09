@@ -28,6 +28,7 @@ logs/
 *.tmp
 *.swp
 *.swo
+cache/
 
 # Docker
 docker/php/conf.d/*.ini
