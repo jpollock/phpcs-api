@@ -2,7 +2,7 @@
 
 /**
  * PHPCS API - Entry point for all API requests.
- * 
+ *
  * This is a high-security, high-performance API for running PHP_CodeSniffer.
  */
 
@@ -39,10 +39,10 @@ if (file_exists(__DIR__ . '/../config.php')) {
 }
 
 // Initialize services
+$logger = new Logger();
 $authService = new AuthService(Config::get('auth.keys_file'));
 $cacheService = new CacheService();
-$phpcsService = new PhpcsService($cacheService);
-$logger = new Logger();
+$phpcsService = new PhpcsService($cacheService, $logger);
 
 // Initialize middleware
 $authMiddleware = new AuthMiddleware(
@@ -69,7 +69,7 @@ $pipeline = function (Request $request) use ($router, $authMiddleware, $security
 };
 
 // Define routes
-$router->addRoute('POST', '/analyze', function (Request $request) use ($phpcsService, $authService) {
+$router->addRoute('POST', '/analyze', function (Request $request) use ($phpcsService, $authService, $logger) {
     // Check if authentication is enabled
     if (Config::get('auth.enabled', true)) {
         // Extract API key from request
@@ -85,6 +85,11 @@ $router->addRoute('POST', '/analyze', function (Request $request) use ($phpcsSer
         
         // Validate API key with analyze scope
         if (!$authService->validateKey($apiKey, 'analyze')) {
+            $logger->logSecurityEvent('unauthorized_access', 'Invalid API key for analyze endpoint', [
+                'key_prefix' => substr($apiKey, 0, 8) . '...',
+                'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+            ]);
+            
             return Response::json([
                 'error' => 'Invalid API key',
                 'message' => 'The provided API key is invalid or does not have the required permissions',
@@ -99,6 +104,11 @@ $router->addRoute('POST', '/analyze', function (Request $request) use ($phpcsSer
 
     // Validate code length to prevent DoS attacks
     if (strlen($request->body['code']) > 1000000) { // 1MB limit
+        $logger->logSecurityEvent('dos_attempt', 'Code exceeds maximum size limit', [
+            'size' => strlen($request->body['code']),
+            'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+        ]);
+        
         return Response::badRequest('Code exceeds maximum size limit (1MB)');
     }
 
@@ -130,7 +140,7 @@ $router->addRoute('POST', '/analyze', function (Request $request) use ($phpcsSer
     ]);
 });
 
-$router->addRoute('GET', '/standards', function (Request $request) use ($phpcsService, $authService) {
+$router->addRoute('GET', '/standards', function (Request $request) use ($phpcsService, $authService, $logger) {
     // Check if authentication is enabled
     if (Config::get('auth.enabled', true)) {
         // Extract API key from request
@@ -146,6 +156,11 @@ $router->addRoute('GET', '/standards', function (Request $request) use ($phpcsSe
         
         // Validate API key with standards scope
         if (!$authService->validateKey($apiKey, 'standards')) {
+            $logger->logSecurityEvent('unauthorized_access', 'Invalid API key for standards endpoint', [
+                'key_prefix' => substr($apiKey, 0, 8) . '...',
+                'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+            ]);
+            
             return Response::json([
                 'error' => 'Invalid API key',
                 'message' => 'The provided API key is invalid or does not have the required permissions',
@@ -153,7 +168,15 @@ $router->addRoute('GET', '/standards', function (Request $request) use ($phpcsSe
         }
     }
     
+    $startTime = microtime(true);
     $standards = $phpcsService->getStandards();
+    $duration = microtime(true) - $startTime;
+    
+    // Log performance
+    $logger->logPerformance('standards', $duration, [
+        'count' => count($standards),
+    ]);
+    
     return Response::json([
         'success' => true,
         'standards' => $standards
@@ -171,7 +194,7 @@ $router->addRoute('GET', '/health', function (Request $request) use ($phpcsServi
 });
 
 // Cache management endpoint (admin only)
-$router->addRoute('POST', '/cache/clear', function (Request $request) use ($authService, $cacheService) {
+$router->addRoute('POST', '/cache/clear', function (Request $request) use ($authService, $cacheService, $logger) {
     // Check if authentication is enabled
     if (Config::get('auth.enabled', true)) {
         // Extract API key from request
@@ -187,6 +210,11 @@ $router->addRoute('POST', '/cache/clear', function (Request $request) use ($auth
         
         // Validate API key with admin scope
         if (!$authService->validateKey($apiKey, 'admin')) {
+            $logger->logSecurityEvent('unauthorized_access', 'Invalid API key for cache clear endpoint', [
+                'key_prefix' => substr($apiKey, 0, 8) . '...',
+                'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+            ]);
+            
             return Response::json([
                 'error' => 'Invalid API key',
                 'message' => 'The provided API key is invalid or does not have the required permissions',
@@ -194,8 +222,26 @@ $router->addRoute('POST', '/cache/clear', function (Request $request) use ($auth
         }
     }
     
+    // Get cache stats before clearing
+    $statsBefore = $cacheService->getStats();
+    
     // Clear cache
+    $startTime = microtime(true);
     $success = $cacheService->clear();
+    $duration = microtime(true) - $startTime;
+    
+    // Log performance
+    $logger->logPerformance('cache_clear', $duration, [
+        'success' => $success,
+        'items_cleared' => $statsBefore['count'] ?? 0,
+        'size_cleared' => $statsBefore['size'] ?? 0,
+    ]);
+    
+    // Log admin action
+    $logger->info('Cache cleared by admin', [
+        'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+        'items_cleared' => $statsBefore['count'] ?? 0,
+    ]);
     
     return Response::json([
         'success' => $success,
@@ -204,7 +250,7 @@ $router->addRoute('POST', '/cache/clear', function (Request $request) use ($auth
 });
 
 // Cache stats endpoint (admin only)
-$router->addRoute('GET', '/cache/stats', function (Request $request) use ($authService, $cacheService) {
+$router->addRoute('GET', '/cache/stats', function (Request $request) use ($authService, $cacheService, $logger) {
     // Check if authentication is enabled
     if (Config::get('auth.enabled', true)) {
         // Extract API key from request
@@ -220,6 +266,11 @@ $router->addRoute('GET', '/cache/stats', function (Request $request) use ($authS
         
         // Validate API key with admin scope
         if (!$authService->validateKey($apiKey, 'admin')) {
+            $logger->logSecurityEvent('unauthorized_access', 'Invalid API key for cache stats endpoint', [
+                'key_prefix' => substr($apiKey, 0, 8) . '...',
+                'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+            ]);
+            
             return Response::json([
                 'error' => 'Invalid API key',
                 'message' => 'The provided API key is invalid or does not have the required permissions',
@@ -228,7 +279,15 @@ $router->addRoute('GET', '/cache/stats', function (Request $request) use ($authS
     }
     
     // Get cache stats
+    $startTime = microtime(true);
     $stats = $cacheService->getStats();
+    $duration = microtime(true) - $startTime;
+    
+    // Log performance
+    $logger->logPerformance('cache_stats', $duration, [
+        'cache_size' => $stats['size'] ?? 0,
+        'cache_count' => $stats['count'] ?? 0,
+    ]);
     
     return Response::json([
         'success' => true,
@@ -237,7 +296,7 @@ $router->addRoute('GET', '/cache/stats', function (Request $request) use ($authS
 });
 
 // API key management endpoints (admin only)
-$router->addRoute('POST', '/keys/generate', function (Request $request) use ($authService) {
+$router->addRoute('POST', '/keys/generate', function (Request $request) use ($authService, $logger) {
     // This endpoint should be protected by additional authentication
     // For now, we'll only allow it in development mode
     if (getenv('APP_ENV') === 'production') {
@@ -259,6 +318,14 @@ $router->addRoute('POST', '/keys/generate', function (Request $request) use ($au
     
     $key = $authService->generateKey($data);
     
+    // Log admin action
+    $logger->info('API key generated', [
+        'key_prefix' => substr($key, 0, 8) . '...',
+        'name' => $name,
+        'scopes' => implode(',', $scopes),
+        'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+    ]);
+    
     return Response::json([
         'success' => true,
         'key' => $key,
@@ -275,12 +342,27 @@ $response = $pipeline($request);
 // Send the response
 $response->send();
 
-// Log the request
+// Extract request headers
+$headers = [];
+foreach ($_SERVER as $name => $value) {
+    if (strpos($name, 'HTTP_') === 0) {
+        $headerName = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))));
+        $headers[$headerName] = $value;
+    }
+}
+
+// Log the request with enhanced information
 $logger->logRequest(
     $request->method,
     $request->path,
     $response->statusCode,
     $_SERVER['REMOTE_ADDR'] ?? 'unknown',
     $_SERVER['HTTP_USER_AGENT'] ?? null,
-    microtime(true) - $startTime
+    microtime(true) - $startTime,
+    $headers,
+    $request->body
 );
+
+// Add request ID to response headers for debugging
+$requestId = $logger->getRequestId();
+header('X-Request-ID: ' . $requestId);

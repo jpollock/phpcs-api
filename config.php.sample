@@ -78,6 +78,27 @@ return [
         'enabled' => true,
         'access_log' => __DIR__ . '/logs/access.log',
         'error_log' => __DIR__ . '/logs/error.log',
-        'log_level' => 'info', // debug, info, warning, error
+        'log_level' => 'info', // debug, info, warning, error, critical
+        
+        // Performance thresholds (in seconds)
+        'slow_threshold' => 1.0, // Threshold for slow requests
+        'performance_threshold' => [
+            'analyze' => 0.5, // Threshold for PHPCS analysis
+            'standards' => 0.2, // Threshold for standards listing
+            'cache_lookup' => 0.05, // Threshold for cache lookups
+            'database' => 0.1, // Threshold for database operations
+        ],
+        
+        // Security logging
+        'security_log' => __DIR__ . '/logs/security.log',
+        'auth_log' => __DIR__ . '/logs/auth.log',
+        
+        // Performance logging
+        'performance_log' => __DIR__ . '/logs/performance.log',
+        'application_log' => __DIR__ . '/logs/application.log',
+        
+        // Log rotation
+        'max_log_size' => 10 * 1024 * 1024, // 10MB
+        'max_log_files' => 10, // Keep 10 rotated log files
     ],
 ];
