@@ -1,0 +1,27 @@
+{
+    "name": "phpcs-api/phpcs-api",
+    "description": "A simple API for PHP_CodeSniffer",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "PHPCS API Team",
+            "email": "info@example.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.4",
+        "squizlabs/php_codesniffer": "^3.7",
+        "phpcompatibility/phpcompatibility-wp": "^2.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "PhpcsApi\\": "src/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    }
+}

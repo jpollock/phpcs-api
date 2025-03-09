@@ -1,0 +1,33 @@
+# Composer
+/vendor/
+composer.phar
+
+# PHP
+.phpunit.result.cache
+
+# Environment
+.env
+config.php
+
+# IDE
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+/tmp/
+*.tmp
+*.swp
+*.swo
+
+# Docker
+docker/php/conf.d/*.ini

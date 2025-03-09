@@ -1,0 +1,11 @@
+version: '3'
+
+services:
+  phpcs-api:
+    build: .
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html
+    environment:
+      - PHP_INI_SCAN_DIR=/var/www/html/docker/php/conf.d
