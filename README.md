@@ -345,6 +345,7 @@ Comprehensive documentation is available in the `docs` directory:
 - [Authentication](docs/authentication.md) - API key authentication system
 - [Caching](docs/caching.md) - Caching system for improved performance
 - [Configuration](docs/configuration.md) - Configuration options and best practices
+- [Deployment](docs/deployment.md) - Guide for deploying to EC2 and updating the deployment
 - [Logging](docs/logging.md) - Enhanced logging system with multiple log levels
 - [Security](docs/security.md) - Security features including rate limiting and input validation
 - [Testing](docs/testing.md) - Testing approach and best practices
