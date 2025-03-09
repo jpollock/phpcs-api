@@ -10,6 +10,7 @@ apt update && apt upgrade -y
 apt install -y git nginx php${php_version}-fpm php${php_version}-cli php${php_version}-xml php${php_version}-mbstring php${php_version}-zip php${php_version}-curl php${php_version}-gd php${php_version}-intl php${php_version}-mysql awscli certbot python3-certbot-nginx
 
 # Install Composer
+export HOME="/root"
 curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
 # Configure PHP-FPM
@@ -17,6 +18,7 @@ systemctl enable php${php_version}-fpm
 systemctl start php${php_version}-fpm
 
 # Install PHP_CodeSniffer globally
+export HOME="/root"
 composer global require squizlabs/php_codesniffer
 
 # Add to PATH
@@ -32,6 +34,7 @@ git clone ${repo_url} /var/www/phpcs-api
 cd /var/www/phpcs-api
 
 # Install dependencies
+export HOME="/root"
 composer install --no-dev --optimize-autoloader
 
 # Set permissions
