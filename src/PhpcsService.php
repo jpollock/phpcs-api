@@ -79,16 +79,10 @@ class PhpcsService
                 throw new \Exception('Invalid PHPCS output: ' . $output);
             }
 
-            // Format the result
-            return [
-                'success' => true,
-                'results' => $result,
-            ];
+            // Return the result directly
+            return $result;
         } catch (\Exception $e) {
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
-            ];
+            throw new \Exception('PHPCS analysis failed: ' . $e->getMessage());
         } finally {
             // Clean up temporary file
             if (file_exists($filename)) {
@@ -116,15 +110,9 @@ class PhpcsService
                 $standards = array_map('trim', explode(',', $standardsList));
             }
 
-            return [
-                'success' => true,
-                'standards' => $standards,
-            ];
+            return $standards;
         } catch (\Exception $e) {
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
-            ];
+            throw new \Exception('Failed to get PHPCS standards: ' . $e->getMessage());
         }
     }
 

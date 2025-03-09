@@ -30,6 +30,7 @@ use PhpcsApi\PhpcsService;
 use PhpcsApi\AuthService;
 use PhpcsApi\AuthMiddleware;
 use PhpcsApi\SecurityMiddleware;
+use PhpcsApi\Logger;
 
 // Load configuration
 if (file_exists(__DIR__ . '/../config.php')) {
@@ -39,6 +40,7 @@ if (file_exists(__DIR__ . '/../config.php')) {
 // Initialize services
 $authService = new AuthService(Config::get('auth.keys_file'));
 $phpcsService = new PhpcsService();
+$logger = new Logger();
 
 // Initialize middleware
 $authMiddleware = new AuthMiddleware(
@@ -65,7 +67,29 @@ $pipeline = function (Request $request) use ($router, $authMiddleware, $security
 };
 
 // Define routes
-$router->addRoute('POST', '/analyze', function (Request $request) use ($phpcsService) {
+$router->addRoute('POST', '/analyze', function (Request $request) use ($phpcsService, $authService) {
+    // Check if authentication is enabled
+    if (Config::get('auth.enabled', true)) {
+        // Extract API key from request
+        $apiKey = $authService->extractKeyFromRequest($request);
+        
+        // Check if API key is provided
+        if (empty($apiKey)) {
+            return Response::json([
+                'error' => 'Authentication required',
+                'message' => 'API key is required for this endpoint',
+            ], 401)->withHeader('WWW-Authenticate', 'Bearer');
+        }
+        
+        // Validate API key with analyze scope
+        if (!$authService->validateKey($apiKey, 'analyze')) {
+            return Response::json([
+                'error' => 'Invalid API key',
+                'message' => 'The provided API key is invalid or does not have the required permissions',
+            ], 403);
+        }
+    }
+    
     // Validate request
     if (!isset($request->body['code'])) {
         return Response::badRequest('Missing code parameter');
@@ -98,12 +122,40 @@ $router->addRoute('POST', '/analyze', function (Request $request) use ($phpcsSer
     // Analyze code
     $result = $phpcsService->analyze($code, $standard, $filteredOptions);
 
-    return Response::json($result);
+    return Response::json([
+        'success' => true,
+        'results' => $result
+    ]);
 });
 
-$router->addRoute('GET', '/standards', function (Request $request) use ($phpcsService) {
+$router->addRoute('GET', '/standards', function (Request $request) use ($phpcsService, $authService) {
+    // Check if authentication is enabled
+    if (Config::get('auth.enabled', true)) {
+        // Extract API key from request
+        $apiKey = $authService->extractKeyFromRequest($request);
+        
+        // Check if API key is provided
+        if (empty($apiKey)) {
+            return Response::json([
+                'error' => 'Authentication required',
+                'message' => 'API key is required for this endpoint',
+            ], 401)->withHeader('WWW-Authenticate', 'Bearer');
+        }
+        
+        // Validate API key with standards scope
+        if (!$authService->validateKey($apiKey, 'standards')) {
+            return Response::json([
+                'error' => 'Invalid API key',
+                'message' => 'The provided API key is invalid or does not have the required permissions',
+            ], 403);
+        }
+    }
+    
     $standards = $phpcsService->getStandards();
-    return Response::json($standards);
+    return Response::json([
+        'success' => true,
+        'standards' => $standards
+    ]);
 });
 
 $router->addRoute('GET', '/health', function (Request $request) use ($phpcsService) {
@@ -145,29 +197,21 @@ $router->addRoute('POST', '/keys/generate', function (Request $request) use ($au
     ]);
 });
 
+// Record start time for request duration calculation
+$startTime = microtime(true);
+
 // Process the request through the middleware pipeline
 $response = $pipeline($request);
 
 // Send the response
 $response->send();
 
-// Log request (in production)
-if ($isProduction) {
-    $logData = [
-        'timestamp' => date('Y-m-d H:i:s'),
-        'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
-        'method' => $request->method,
-        'path' => $request->path,
-        'status' => $response->statusCode,
-        'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown',
-    ];
-    
-    // Don't log health checks
-    if ($request->path !== '/health') {
-        file_put_contents(
-            __DIR__ . '/../logs/access.log',
-            json_encode($logData) . "\n",
-            FILE_APPEND
-        );
-    }
-}
+// Log the request
+$logger->logRequest(
+    $request->method,
+    $request->path,
+    $response->statusCode,
+    $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+    $_SERVER['HTTP_USER_AGENT'] ?? null,
+    microtime(true) - $startTime
+);

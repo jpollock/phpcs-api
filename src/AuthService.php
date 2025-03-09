@@ -48,12 +48,12 @@ class AuthService
     /**
      * Validate an API key.
      *
-     * @param string $apiKey API key to validate.
-     * @param string $scope  Required scope (optional).
+     * @param string      $apiKey API key to validate.
+     * @param string|null $scope  Required scope (optional).
      *
      * @return bool True if the API key is valid, false otherwise.
      */
-    public function validateKey(string $apiKey, string $scope = null): bool
+    public function validateKey(string $apiKey, ?string $scope = null): bool
     {
         if (empty($apiKey)) {
             return false;

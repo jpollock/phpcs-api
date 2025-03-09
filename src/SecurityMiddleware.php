@@ -24,6 +24,20 @@ class SecurityMiddleware
     private $rateLimits = [];
 
     /**
+     * Authentication rate limit storage.
+     *
+     * @var array
+     */
+    private $authRateLimits = [];
+
+    /**
+     * Logger instance.
+     *
+     * @var Logger
+     */
+    private $logger;
+
+    /**
      * Create a new SecurityMiddleware instance.
      *
      * @param array $config Security configuration.
@@ -31,6 +45,7 @@ class SecurityMiddleware
     public function __construct(array $config = [])
     {
         $this->config = $config ?: Config::get('security', []);
+        $this->logger = new Logger();
     }
 
     /**
@@ -50,7 +65,16 @@ class SecurityMiddleware
         
         // Check rate limits
         if ($this->config['rate_limit']['enabled']) {
-            $rateLimitResult = $this->checkRateLimit($request);
+            // Check for authentication endpoints
+            $isAuthEndpoint = $this->isAuthenticationEndpoint($request->path);
+            
+            // Apply stricter rate limits for authentication endpoints
+            if ($isAuthEndpoint) {
+                $rateLimitResult = $this->checkAuthRateLimit($request);
+            } else {
+                $rateLimitResult = $this->checkRateLimit($request);
+            }
+            
             if ($rateLimitResult !== true) {
                 return $rateLimitResult;
             }
@@ -150,7 +174,34 @@ class SecurityMiddleware
     }
 
     /**
-     * Check rate limits.
+     * Check if a path is an authentication endpoint.
+     *
+     * @param string $path Request path.
+     *
+     * @return bool True if the path is an authentication endpoint, false otherwise.
+     */
+    private function isAuthenticationEndpoint(string $path): bool
+    {
+        // List of paths that are considered authentication endpoints
+        $authPaths = Config::get('auth.protected_paths', []);
+        
+        foreach ($authPaths as $authPath) {
+            // Exact match
+            if ($authPath === $path) {
+                return true;
+            }
+            
+            // Wildcard match
+            if (substr($authPath, -1) === '*' && strpos($path, rtrim($authPath, '*')) === 0) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Check rate limits for regular endpoints.
      *
      * @param Request $request Request instance.
      *
@@ -231,19 +282,123 @@ class SecurityMiddleware
     }
 
     /**
+     * Check rate limits for authentication endpoints.
+     *
+     * @param Request $request Request instance.
+     *
+     * @return Response|true Response if rate limit exceeded, true otherwise.
+     */
+    private function checkAuthRateLimit(Request $request)
+    {
+        // Get client identifier (IP address or API key)
+        $clientId = $request->apiKey ?? $this->getClientIp($request);
+        
+        if (empty($clientId)) {
+            return true;
+        }
+        
+        // Initialize rate limit data for client
+        if (!isset($this->authRateLimits[$clientId])) {
+            $this->authRateLimits[$clientId] = [
+                'minute' => [
+                    'count' => 0,
+                    'reset' => time() + 60,
+                ],
+                'hour' => [
+                    'count' => 0,
+                    'reset' => time() + 3600,
+                ],
+            ];
+        }
+        
+        // Stricter limits for authentication endpoints
+        $minuteLimit = 10; // 10 attempts per minute
+        $hourLimit = 100;  // 100 attempts per hour
+        
+        // Check and update minute limit
+        if ($minuteLimit > 0) {
+            // Reset if expired
+            if (time() > $this->authRateLimits[$clientId]['minute']['reset']) {
+                $this->authRateLimits[$clientId]['minute'] = [
+                    'count' => 1,
+                    'reset' => time() + 60,
+                ];
+            } else {
+                // Increment count
+                $this->authRateLimits[$clientId]['minute']['count']++;
+                
+                // Check if exceeded
+                if ($this->authRateLimits[$clientId]['minute']['count'] > $minuteLimit) {
+                    // Log rate limit exceeded
+                    $this->logger->logError(
+                        "Authentication rate limit exceeded: {$minuteLimit} attempts per minute",
+                        $request->path,
+                        "Client ID: {$clientId}"
+                    );
+                    
+                    return $this->createRateLimitResponse(
+                        $this->authRateLimits[$clientId]['minute']['reset'] - time(),
+                        $minuteLimit,
+                        'minute',
+                        true
+                    );
+                }
+            }
+        }
+        
+        // Check and update hour limit
+        if ($hourLimit > 0) {
+            // Reset if expired
+            if (time() > $this->authRateLimits[$clientId]['hour']['reset']) {
+                $this->authRateLimits[$clientId]['hour'] = [
+                    'count' => 1,
+                    'reset' => time() + 3600,
+                ];
+            } else {
+                // Increment count
+                $this->authRateLimits[$clientId]['hour']['count']++;
+                
+                // Check if exceeded
+                if ($this->authRateLimits[$clientId]['hour']['count'] > $hourLimit) {
+                    // Log rate limit exceeded
+                    $this->logger->logError(
+                        "Authentication rate limit exceeded: {$hourLimit} attempts per hour",
+                        $request->path,
+                        "Client ID: {$clientId}"
+                    );
+                    
+                    return $this->createRateLimitResponse(
+                        $this->authRateLimits[$clientId]['hour']['reset'] - time(),
+                        $hourLimit,
+                        'hour',
+                        true
+                    );
+                }
+            }
+        }
+        
+        return true;
+    }
+
+    /**
      * Create rate limit response.
      *
      * @param int    $retryAfter Seconds until retry is allowed.
      * @param int    $limit      Rate limit.
      * @param string $period     Rate limit period.
+     * @param bool   $isAuth     Whether this is an authentication rate limit.
      *
      * @return Response
      */
-    private function createRateLimitResponse(int $retryAfter, int $limit, string $period): Response
+    private function createRateLimitResponse(int $retryAfter, int $limit, string $period, bool $isAuth = false): Response
     {
+        $message = $isAuth
+            ? "Too many authentication attempts. You have exceeded the {$limit} attempts per {$period} rate limit."
+            : "You have exceeded the {$limit} requests per {$period} rate limit.";
+            
         return Response::json([
             'error' => 'Rate limit exceeded',
-            'message' => "You have exceeded the {$limit} requests per {$period} rate limit.",
+            'message' => $message,
             'retry_after' => $retryAfter,
         ], 429)->withHeader('Retry-After', (string) $retryAfter);
     }

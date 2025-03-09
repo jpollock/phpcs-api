@@ -17,6 +17,13 @@ class AuthMiddleware
     private $authService;
 
     /**
+     * Logger instance.
+     *
+     * @var Logger
+     */
+    private $logger;
+
+    /**
      * Protected paths that require authentication.
      *
      * @var array
@@ -40,6 +47,7 @@ class AuthMiddleware
     public function __construct(AuthService $authService, array $protectedPaths = [], array $pathScopes = [])
     {
         $this->authService = $authService;
+        $this->logger = new Logger();
         $this->protectedPaths = $protectedPaths;
         $this->pathScopes = $pathScopes;
     }
@@ -54,16 +62,28 @@ class AuthMiddleware
      */
     public function process(Request $request, callable $next): Response
     {
-        // Skip authentication for non-protected paths
-        if (!$this->isProtectedPath($request->path)) {
+        // Skip authentication if disabled or for non-protected paths
+        if (!Config::get('auth.enabled', true) || !$this->isProtectedPath($request->path)) {
             return $next($request);
         }
 
         // Extract API key from request
         $apiKey = $this->authService->extractKeyFromRequest($request);
         
+        // Get client IP
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        
         // Check if API key is provided
         if (empty($apiKey)) {
+            // Log failed authentication attempt (no API key)
+            $this->logger->logAuthAttempt(
+                $request->path,
+                null,
+                false,
+                'No API key provided',
+                $ip
+            );
+            
             return Response::json([
                 'error' => 'Authentication required',
                 'message' => 'API key is required for this endpoint',
@@ -75,11 +95,29 @@ class AuthMiddleware
         
         // Validate API key
         if (!$this->authService->validateKey($apiKey, $scope)) {
+            // Log failed authentication attempt (invalid API key or scope)
+            $this->logger->logAuthAttempt(
+                $request->path,
+                $apiKey,
+                false,
+                $scope ? "Invalid API key or missing '$scope' scope" : 'Invalid API key',
+                $ip
+            );
+            
             return Response::json([
                 'error' => 'Invalid API key',
                 'message' => 'The provided API key is invalid or does not have the required permissions',
             ], 403);
         }
+        
+        // Log successful authentication
+        $this->logger->logAuthAttempt(
+            $request->path,
+            $apiKey,
+            true,
+            null,
+            $ip
+        );
         
         // Add API key data to request for downstream handlers
         $request->apiKey = $apiKey;
