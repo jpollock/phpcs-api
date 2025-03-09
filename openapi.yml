@@ -68,6 +68,10 @@ components:
           description: PHPCS standard to use
           default: PSR12
           example: PSR12
+        phpVersion:
+          type: string
+          description: PHP version(s) to test against when using PHPCompatibility standard (e.g., "7.0", "5.6-7.4")
+          example: "7.0-8.1"
         options:
           type: object
           description: Additional PHPCS options
@@ -386,6 +390,20 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/AnalyzeRequest'
+            examples:
+              standard-analysis:
+                value:
+                  code: "<?php echo \"Hello World\"; ?>\n"
+                  standard: "PSR12"
+                  options:
+                    report: "json"
+              php-compatibility:
+                value:
+                  code: "<?php\nfunction test($param) {\n  return $param;\n}\n"
+                  standard: "PHPCompatibility"
+                  phpVersion: "5.6-7.4"
+                  options:
+                    report: "json"
       responses:
         '200':
           description: Successful analysis
@@ -393,25 +411,47 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AnalyzeResponse'
-              example:
-                success: true
-                results:
-                  totals:
-                    errors: 1
-                    warnings: 0
-                    fixable: 1
-                  files:
-                    code.php:
-                      errors: 1
-                      warnings: 0
-                      messages:
-                        - message: Double quoted string contains a single quote
-                          source: Squiz.Strings.DoubleQuoteUsage.ContainsSingleQuote
-                          severity: 5
-                          type: ERROR
-                          line: 1
-                          column: 12
-                          fixable: true
+              examples:
+                standard-analysis:
+                  value:
+                    success: true
+                    results:
+                      totals:
+                        errors: 1
+                        warnings: 0
+                        fixable: 1
+                      files:
+                        code.php:
+                          errors: 1
+                          warnings: 0
+                          messages:
+                            - message: Double quoted string contains a single quote
+                              source: Squiz.Strings.DoubleQuoteUsage.ContainsSingleQuote
+                              severity: 5
+                              type: ERROR
+                              line: 1
+                              column: 12
+                              fixable: true
+                php-compatibility:
+                  value:
+                    success: true
+                    results:
+                      totals:
+                        errors: 1
+                        warnings: 0
+                        fixable: 0
+                      files:
+                        code.php:
+                          errors: 1
+                          warnings: 0
+                          messages:
+                            - message: "The function parameter $param is missing the type declaration. Function parameter type declarations are available since PHP 7.0."
+                              source: PHPCompatibility.FunctionDeclarations.MissingTypeDeclaration.Missing
+                              severity: 5
+                              type: ERROR
+                              line: 2
+                              column: 16
+                              fixable: false
         '400':
           description: Bad request
           content:

@@ -12,6 +12,7 @@ The API also returns the version in the `X-API-Version` response header.
 ## Features
 
 - Analyze PHP code using PHPCS with support for all installed standards
+- PHP version compatibility testing with the PHPCompatibility standard
 - High-performance caching system for faster response times
 - Comprehensive logging and monitoring capabilities
 - Robust security with API key authentication and rate limiting
@@ -26,6 +27,7 @@ Analyzes PHP code using PHPCS.
 
 **Request:**
 
+Standard Analysis:
 ```json
 {
   "code": "<?php echo \"Hello World\"; ?>\n",
@@ -33,6 +35,18 @@ Analyzes PHP code using PHPCS.
   "options": {
     "report": "json",
     "showSources": true
+  }
+}
+```
+
+PHP Version Compatibility Testing:
+```json
+{
+  "code": "<?php\nfunction test(string $param): string {\n  return $param;\n}\n",
+  "standard": "PHPCompatibility",
+  "phpVersion": "5.6-7.4",
+  "options": {
+    "report": "json"
   }
 }
 ```
@@ -158,11 +172,17 @@ docker-compose up -d
 ### cURL
 
 ```bash
-# Analyze code
+# Analyze code with PSR12 standard
 curl -X POST http://localhost:8080/v1/analyze \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d '{"code":"<?php echo \"Hello World\"; ?>\n","standard":"PSR12"}'
+
+# PHP version compatibility testing
+curl -X POST http://localhost:8080/v1/analyze \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -d '{"code":"<?php\nfunction test(string $param): string {\n  return $param;\n}\n","standard":"PHPCompatibility","phpVersion":"5.6-7.4"}'
 
 # Get standards
 curl http://localhost:8080/v1/standards \
@@ -176,8 +196,12 @@ curl http://localhost:8080/v1/health
 
 ```php
 <?php
+// Standard analysis
 $code = '<?php echo "Hello World"; ?>';
-$data = json_encode(['code' => $code, 'standard' => 'PSR12']);
+$data = json_encode([
+    'code' => $code,
+    'standard' => 'PSR12'
+]);
 
 $ch = curl_init('http://localhost:8080/v1/analyze');
 curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
@@ -192,6 +216,35 @@ curl_close($ch);
 
 $result = json_decode($response, true);
 print_r($result);
+
+// PHP version compatibility testing
+$compatibilityCode = '<?php
+function test(string $param): string {
+    return $param;
+}';
+
+$compatibilityData = json_encode([
+    'code' => $compatibilityCode,
+    'standard' => 'PHPCompatibility',
+    'phpVersion' => '5.6-7.4',
+    'options' => [
+        'report' => 'json'
+    ]
+]);
+
+$ch = curl_init('http://localhost:8080/v1/analyze');
+curl_setopt($ch, CURLOPT_POSTFIELDS, $compatibilityData);
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    'Content-Type: application/json',
+    'Authorization: Bearer YOUR_API_KEY'
+]);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$compatibilityResponse = curl_exec($ch);
+curl_close($ch);
+
+$compatibilityResult = json_decode($compatibilityResponse, true);
+print_r($compatibilityResult);
 ```
 
 ### Java
@@ -205,6 +258,14 @@ import java.util.Scanner;
 
 public class PhpcsApiExample {
     public static void main(String[] args) {
+        // Standard analysis
+        analyzeWithPsr12();
+        
+        // PHP version compatibility testing
+        analyzeWithPhpCompatibility();
+    }
+    
+    private static void analyzeWithPsr12() {
         try {
             URL url = new URL("http://localhost:8080/v1/analyze");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -225,7 +286,43 @@ public class PhpcsApiExample {
             }
 
             int responseCode = conn.getResponseCode();
-            System.out.println("Response Code: " + responseCode);
+            System.out.println("PSR12 Analysis - Response Code: " + responseCode);
+
+            try(Scanner scanner = new Scanner(conn.getInputStream(), StandardCharsets.UTF_8.name())) {
+                String response = scanner.useDelimiter("\\A").next();
+                System.out.println(response);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
+    private static void analyzeWithPhpCompatibility() {
+        try {
+            URL url = new URL("http://localhost:8080/v1/analyze");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Authorization", "Bearer YOUR_API_KEY");
+            conn.setDoOutput(true);
+
+            String code = "<?php\\nfunction test(string $param): string {\\n  return $param;\\n}\\n";
+            String requestBody = "{"
+                + "\"code\": \"" + code + "\","
+                + "\"standard\": \"PHPCompatibility\","
+                + "\"phpVersion\": \"5.6-7.4\","
+                + "\"options\": {"
+                + "  \"report\": \"json\""
+                + "}"
+                + "}";
+
+            try(OutputStream os = conn.getOutputStream()) {
+                byte[] input = requestBody.getBytes(StandardCharsets.UTF_8);
+                os.write(input, 0, input.length);
+            }
+
+            int responseCode = conn.getResponseCode();
+            System.out.println("PHP Compatibility Analysis - Response Code: " + responseCode);
 
             try(Scanner scanner = new Scanner(conn.getInputStream(), StandardCharsets.UTF_8.name())) {
                 String response = scanner.useDelimiter("\\A").next();
@@ -254,7 +351,18 @@ Comprehensive documentation is available in the `docs` directory:
 
 The OpenAPI specification is available in the root directory as `openapi.yml`. You can view it interactively using the [OpenAPI documentation viewer](docs/openapi.html).
 
-## Testing with Postman
+## Testing
+
+### Manual Tests
+
+Manual test scripts are available in the `tests/manual` directory:
+
+- [PHP Version Compatibility Testing](tests/manual/test-php-version.php) - Test script for PHP version compatibility testing
+- [Manual Tests README](tests/manual/README.md) - Instructions for using the manual test scripts
+
+These scripts help you verify that the API is working correctly, especially for features like PHP version compatibility testing.
+
+### Testing with Postman
 
 A Postman collection is available in the `postman` directory for testing the API:
 

@@ -116,6 +116,8 @@ $router->addRoute('POST', '/v1/analyze', function (Request $request) use ($phpcs
     $code = $request->body['code'];
     $standard = isset($request->body['standard']) ? 
         preg_replace('/[^a-zA-Z0-9_\-\/]/', '', $request->body['standard']) : 'PSR12';
+    $phpVersion = isset($request->body['phpVersion']) ? 
+        preg_replace('/[^0-9\.\-,]/', '', $request->body['phpVersion']) : null;
     $options = $request->body['options'] ?? [];
     
     // Validate options
@@ -131,8 +133,19 @@ $router->addRoute('POST', '/v1/analyze', function (Request $request) use ($phpcs
         }
     }
 
+    // Log PHP version testing if applicable
+    if ($phpVersion !== null && 
+        (strpos(strtolower($standard), 'phpcompatibility') !== false || 
+         strpos(strtolower($standard), 'php-compatibility') !== false)) {
+        $logger->info('PHP version compatibility testing requested', [
+            'standard' => $standard,
+            'php_version' => $phpVersion,
+            'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+        ]);
+    }
+
     // Analyze code
-    $result = $phpcsService->analyze($code, $standard, $filteredOptions);
+    $result = $phpcsService->analyze($code, $standard, $phpVersion, $filteredOptions);
 
     return Response::json([
         'success' => true,

@@ -56,19 +56,28 @@ class CacheService
     /**
      * Generate a cache key for the given code and options.
      *
-     * @param string $code     PHP code to analyze.
-     * @param string $standard PHPCS standard to use.
-     * @param array  $options  Additional PHPCS options.
+     * @param string      $code       PHP code to analyze.
+     * @param string      $standard   PHPCS standard to use.
+     * @param string|null $phpVersion PHP version to test against (for PHPCompatibility).
+     * @param array       $options    Additional PHPCS options.
      *
      * @return string
      */
-    public function generateKey(string $code, string $standard, array $options = []): string
+    public function generateKey(string $code, string $standard, ?string $phpVersion = null, array $options = []): string
     {
         // Sort options to ensure consistent key generation
         ksort($options);
         
-        // Generate a hash of the code, standard, and options
-        return hash('sha256', $code . $standard . json_encode($options));
+        // Create a data array with all parameters
+        $data = [
+            'code' => $code,
+            'standard' => $standard,
+            'phpVersion' => $phpVersion,
+            'options' => $options,
+        ];
+        
+        // Generate a hash of the data
+        return hash('sha256', serialize($data));
     }
 
     /**

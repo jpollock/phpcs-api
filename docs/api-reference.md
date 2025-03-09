@@ -37,6 +37,8 @@ POST /v1/analyze
 
 #### Request
 
+**Standard Analysis Example:**
+
 ```json
 {
   "code": "<?php echo \"Hello World\"; ?>",
@@ -55,12 +57,26 @@ POST /v1/analyze
 }
 ```
 
+**PHP Compatibility Example:**
+
+```json
+{
+  "code": "<?php\nfunction test($param) {\n  return $param;\n}\n",
+  "standard": "PHPCompatibility",
+  "phpVersion": "5.6-7.4",
+  "options": {
+    "report": "json"
+  }
+}
+```
+
 **Parameters:**
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `code` | string | Yes | PHP code to analyze |
 | `standard` | string | No | PHPCS standard to use (default: PSR12) |
+| `phpVersion` | string | No | PHP version(s) to test against when using PHPCompatibility standard (e.g., "7.0", "5.6-7.4") |
 | `options` | object | No | Additional PHPCS options |
 
 **Options:**
@@ -76,6 +92,30 @@ POST /v1/analyze
 | `extensions` | string | File extensions to check |
 | `sniffs` | array | Specific sniffs to include |
 | `exclude` | array | Specific sniffs to exclude |
+
+**PHP Version Compatibility Testing:**
+
+When using the `PHPCompatibility` standard, you can specify which PHP version(s) to test against using the `phpVersion` parameter. This allows you to check if your code is compatible with specific PHP versions.
+
+The `phpVersion` parameter accepts the following formats:
+- Single version: `"7.0"` (checks compatibility with PHP 7.0)
+- Version range: `"5.6-7.4"` (checks compatibility with PHP 5.6 through 7.4)
+- Multiple versions: `"5.6,7.0,7.4"` (checks compatibility with specific versions)
+
+Example request for checking compatibility with PHP 5.6 through 7.4:
+
+```json
+{
+  "code": "<?php\nfunction test($param) {\n  return $param;\n}\n",
+  "standard": "PHPCompatibility",
+  "phpVersion": "5.6-7.4",
+  "options": {
+    "report": "json"
+  }
+}
+```
+
+This would identify that the function parameter `$param` is missing a type declaration, which is available in PHP 7.0+.
 
 #### Response
 

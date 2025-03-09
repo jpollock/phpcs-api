@@ -57,20 +57,21 @@ class PhpcsService
     /**
      * Analyze PHP code using PHPCS.
      *
-     * @param string $code     PHP code to analyze.
-     * @param string $standard PHPCS standard to use.
-     * @param array  $options  Additional PHPCS options.
+     * @param string      $code       PHP code to analyze.
+     * @param string      $standard   PHPCS standard to use.
+     * @param string|null $phpVersion PHP version to test against (for PHPCompatibility).
+     * @param array       $options    Additional PHPCS options.
      *
      * @return array
      */
-    public function analyze(string $code, string $standard = 'PSR12', array $options = []): array
+    public function analyze(string $code, string $standard = 'PSR12', ?string $phpVersion = null, array $options = []): array
     {
         $startTime = microtime(true);
         $codeSize = strlen($code);
         $cacheHit = false;
         
         // Generate cache key
-        $cacheKey = $this->cacheService->generateKey($code, $standard, $options);
+        $cacheKey = $this->cacheService->generateKey($code, $standard, $phpVersion, $options);
         
         // Check cache
         $cacheCheckStart = microtime(true);
@@ -86,6 +87,7 @@ class PhpcsService
         if ($cachedResult !== null) {
             $this->logger->info('Cache hit for PHPCS analysis', [
                 'standard' => $standard,
+                'php_version' => $phpVersion,
                 'code_size' => $codeSize,
                 'key' => substr($cacheKey, 0, 8) . '...',
             ]);
@@ -95,6 +97,7 @@ class PhpcsService
             $this->logger->logPerformance('analyze', $totalDuration, [
                 'cache_hit' => true,
                 'standard' => $standard,
+                'php_version' => $phpVersion,
                 'code_size' => $codeSize,
             ]);
             
@@ -103,6 +106,7 @@ class PhpcsService
         
         $this->logger->debug('Cache miss for PHPCS analysis', [
             'standard' => $standard,
+            'php_version' => $phpVersion,
             'code_size' => $codeSize,
         ]);
         
@@ -118,6 +122,18 @@ class PhpcsService
                 escapeshellarg($standard),
                 escapeshellarg($filename)
             );
+
+            // Add PHP version testing for PHPCompatibility standards
+            if ($phpVersion !== null && 
+                (strpos(strtolower($standard), 'phpcompatibility') !== false || 
+                 strpos(strtolower($standard), 'php-compatibility') !== false)) {
+                $command .= ' --runtime-set testVersion ' . escapeshellarg($phpVersion);
+                
+                $this->logger->debug('Using PHP version for compatibility testing', [
+                    'standard' => $standard,
+                    'php_version' => $phpVersion
+                ]);
+            }
 
             // Add additional options
             foreach ($options as $key => $value) {
