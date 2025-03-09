@@ -22,12 +22,22 @@ class PhpcsService
     private $tempDir;
 
     /**
-     * Create a new PhpcsService instance.
+     * Cache service instance.
+     *
+     * @var CacheService
      */
-    public function __construct()
+    private $cacheService;
+
+    /**
+     * Create a new PhpcsService instance.
+     * 
+     * @param CacheService|null $cacheService Cache service instance.
+     */
+    public function __construct(?CacheService $cacheService = null)
     {
         $this->phpcsPath = __DIR__ . '/../vendor/bin/phpcs';
         $this->tempDir = sys_get_temp_dir() . '/phpcs-api';
+        $this->cacheService = $cacheService ?? new CacheService();
         
         // Create temp directory if it doesn't exist
         if (!is_dir($this->tempDir)) {
@@ -46,6 +56,15 @@ class PhpcsService
      */
     public function analyze(string $code, string $standard = 'PSR12', array $options = []): array
     {
+        // Generate cache key
+        $cacheKey = $this->cacheService->generateKey($code, $standard, $options);
+        
+        // Check cache
+        $cachedResult = $this->cacheService->get($cacheKey);
+        if ($cachedResult !== null) {
+            return $cachedResult;
+        }
+        
         // Create a temporary file with the code
         $filename = $this->tempDir . '/' . uniqid('phpcs_') . '.php';
         file_put_contents($filename, $code);
@@ -79,7 +98,10 @@ class PhpcsService
                 throw new \Exception('Invalid PHPCS output: ' . $output);
             }
 
-            // Return the result directly
+            // Cache the result
+            $this->cacheService->set($cacheKey, $result);
+            
+            // Return the result
             return $result;
         } catch (\Exception $e) {
             throw new \Exception('PHPCS analysis failed: ' . $e->getMessage());

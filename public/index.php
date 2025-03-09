@@ -31,6 +31,7 @@ use PhpcsApi\AuthService;
 use PhpcsApi\AuthMiddleware;
 use PhpcsApi\SecurityMiddleware;
 use PhpcsApi\Logger;
+use PhpcsApi\CacheService;
 
 // Load configuration
 if (file_exists(__DIR__ . '/../config.php')) {
@@ -39,7 +40,8 @@ if (file_exists(__DIR__ . '/../config.php')) {
 
 // Initialize services
 $authService = new AuthService(Config::get('auth.keys_file'));
-$phpcsService = new PhpcsService();
+$cacheService = new CacheService();
+$phpcsService = new PhpcsService($cacheService);
 $logger = new Logger();
 
 // Initialize middleware
@@ -158,12 +160,79 @@ $router->addRoute('GET', '/standards', function (Request $request) use ($phpcsSe
     ]);
 });
 
-$router->addRoute('GET', '/health', function (Request $request) use ($phpcsService) {
+$router->addRoute('GET', '/health', function (Request $request) use ($phpcsService, $cacheService) {
     return Response::json([
         'status' => 'ok',
         'version' => Config::get('app_version'),
         'phpcs_version' => $phpcsService->getVersion(),
         'timestamp' => time(),
+        'cache' => $cacheService->getStats(),
+    ]);
+});
+
+// Cache management endpoint (admin only)
+$router->addRoute('POST', '/cache/clear', function (Request $request) use ($authService, $cacheService) {
+    // Check if authentication is enabled
+    if (Config::get('auth.enabled', true)) {
+        // Extract API key from request
+        $apiKey = $authService->extractKeyFromRequest($request);
+        
+        // Check if API key is provided
+        if (empty($apiKey)) {
+            return Response::json([
+                'error' => 'Authentication required',
+                'message' => 'API key is required for this endpoint',
+            ], 401)->withHeader('WWW-Authenticate', 'Bearer');
+        }
+        
+        // Validate API key with admin scope
+        if (!$authService->validateKey($apiKey, 'admin')) {
+            return Response::json([
+                'error' => 'Invalid API key',
+                'message' => 'The provided API key is invalid or does not have the required permissions',
+            ], 403);
+        }
+    }
+    
+    // Clear cache
+    $success = $cacheService->clear();
+    
+    return Response::json([
+        'success' => $success,
+        'message' => $success ? 'Cache cleared successfully' : 'Failed to clear cache',
+    ]);
+});
+
+// Cache stats endpoint (admin only)
+$router->addRoute('GET', '/cache/stats', function (Request $request) use ($authService, $cacheService) {
+    // Check if authentication is enabled
+    if (Config::get('auth.enabled', true)) {
+        // Extract API key from request
+        $apiKey = $authService->extractKeyFromRequest($request);
+        
+        // Check if API key is provided
+        if (empty($apiKey)) {
+            return Response::json([
+                'error' => 'Authentication required',
+                'message' => 'API key is required for this endpoint',
+            ], 401)->withHeader('WWW-Authenticate', 'Bearer');
+        }
+        
+        // Validate API key with admin scope
+        if (!$authService->validateKey($apiKey, 'admin')) {
+            return Response::json([
+                'error' => 'Invalid API key',
+                'message' => 'The provided API key is invalid or does not have the required permissions',
+            ], 403);
+        }
+    }
+    
+    // Get cache stats
+    $stats = $cacheService->getStats();
+    
+    return Response::json([
+        'success' => true,
+        'stats' => $stats,
     ]);
 });
 

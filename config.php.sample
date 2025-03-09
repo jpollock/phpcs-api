@@ -65,6 +65,14 @@ return [
         'execution_timeout' => 30, // seconds
     ],
     
+    // Cache settings
+    'cache' => [
+        'enabled' => true,
+        'ttl' => 3600, // 1 hour
+        'max_size' => 100 * 1024 * 1024, // 100MB
+        'cleanup_probability' => 0.01, // 1% chance of cleanup on each request
+    ],
+    
     // Logging settings
     'logging' => [
         'enabled' => true,
